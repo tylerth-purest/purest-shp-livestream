@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Purest Livestream Scheduler</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e8e6e0;
+    --border-strong: #c8c5bc;
+    --text: #1a1917;
+    --muted: #6b6860;
+    --hint: #a8a49c;
+    --brand-bg: #e8f0fe;
+    --brand-text: #1a56c4;
+    --brand-border: #93b4f7;
+    --aff-bg: #e8f5ec;
+    --aff-text: #1a7a3a;
+    --aff-border: #86d4a0;
+    --red-bg: #fdecea;
+    --red-text: #c0392b;
+    --red-border: #f5a9a3;
+    --amber-bg: #fef8e7;
+    --amber-text: #92650a;
+    --amber-border: #f5d98a;
+    --accent: #1a1917;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  
+  /* LAYOUT */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 0; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 10; }
+  .main { margin-left: 220px; flex: 1; padding: 32px 36px; max-width: 1100px; }
+  
+  /* SIDEBAR */
+  .logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo-mark { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+  .logo-name { font-size: 15px; font-weight: 500; }
+  .nav { padding: 12px 10px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--muted); transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: var(--bg); color: var(--text); }
+  .nav-item.active { background: var(--text); color: #fff; }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-section { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hint); padding: 14px 12px 6px; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--hint); }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--muted); }
+  
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; }
+  .card-title { font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+  
+  /* FORM ELEMENTS */
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  input[type=text], input[type=email], input[type=date], input[type=password], select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface);
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--border-strong); }
+  .form-row { margin-bottom: 16px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field-hint { font-size: 11px; color: var(--hint); margin-top: 4px; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--surface); color: var(--text); transition: all 0.15s; }
+  .btn:hover { background: var(--bg); }
+  .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-danger { color: var(--red-text); border-color: var(--red-border); }
+  .btn-danger:hover { background: var(--red-bg); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; padding: 11px; font-size: 14px; }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+  .badge-brand { background: var(--brand-bg); color: var(--brand-text); }
+  .badge-affiliate { background: var(--aff-bg); color: var(--aff-text); }
+  .badge-full { background: var(--red-bg); color: var(--red-text); }
+  .badge-warn { background: var(--amber-bg); color: var(--amber-text); }
+  
+  /* ALERTS */
+  .alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; }
+  .alert-success { background: var(--aff-bg); color: var(--aff-text); border: 1px solid var(--aff-border); }
+  .alert-error { background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red-border); }
+  .alert-info { background: var(--brand-bg); color: var(--brand-text); border: 1px solid var(--brand-border); }
+  .alert-warn { background: var(--amber-bg); color: var(--amber-text); border: 1px solid var(--amber-border); }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* TYPE SELECTOR */
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .type-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; cursor: pointer; transition: all 0.15s; }
+  .type-card:hover { border-color: var(--border-strong); }
+  .type-card.sel-brand { border-color: var(--brand-border); background: var(--brand-bg); }
+  .type-card.sel-affiliate { border-color: var(--aff-border); background: var(--aff-bg); }
+  .type-card-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .type-card.sel-brand .type-card-title { color: var(--brand-text); }
+  .type-card.sel-affiliate .type-card-title { color: var(--aff-text); }
+  .type-card-desc { font-size: 11px; color: var(--muted); }
+
+  /* SLOT PICKER */
+  .slot-section-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 8px; margin-top: 4px; }
+  .slot-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 16px; }
+  .slot { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 6px; text-align: center; cursor: pointer; transition: all 0.12s; }
+  .slot:hover:not(.slot-taken) { border-color: var(--border-strong); background: var(--bg); }
+  .slot-time { font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace; }
+  .slot-cap { font-size: 10px; color: var(--hint); margin-top: 2px; }
+  .slot-taken { background: var(--bg); cursor: not-allowed; opacity: 0.55; }
+  .slot-partial { border-color: var(--aff-border); background: var(--aff-bg); }
+  .slot-partial .slot-cap { color: var(--aff-text); }
+  .slot-selected { border-color: var(--text); background: var(--text); }
+  .slot-selected .slot-time, .slot-selected .slot-cap { color: #fff; }
+
+  /* CALENDAR */
+  .cal-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .cal-nav-title { font-size: 15px; font-weight: 500; flex: 1; }
+  .cal-week-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 4px; }
+  .cal-week-header span { font-size: 11px; color: var(--muted); text-align: center; padding: 4px 0; font-weight: 500; }
+  .cal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-cell { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px; min-height: 82px; cursor: pointer; transition: border-color 0.12s; }
+  .cal-cell:hover { border-color: var(--border-strong); }
+  .cal-cell.other-month { opacity: 0.35; }
+  .cal-cell.today { border-color: var(--text); }
+  .cal-cell-num { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+  .cal-event { font-size: 10px; border-radius: 3px; padding: 2px 5px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-event-brand { background: var(--brand-bg); color: var(--brand-text); border-left: 2px solid var(--brand-text); }
+  .cal-event-affiliate { background: var(--aff-bg); color: var(--aff-text); border-left: 2px solid var(--aff-text); }
+  .cal-more { font-size: 10px; color: var(--hint); padding: 1px 4px; }
+  .cal-dot-row { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+  .cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* DAY DETAIL */
+  .day-detail { margin-top: 16px; }
+  .day-detail-title { font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+
+  /* TABLE */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 9px 12px; font-size: 11px; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+
+  /* ADMIN STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg); border-radius: var(--radius-sm); padding: 16px; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .stat-val { font-size: 24px; font-weight: 500; font-family: 'DM Mono', monospace; }
+
+  /* ADMIN SETTINGS */
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 13px; font-weight: 500; }
+  .settings-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* COPY AREA */
+  .copy-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); white-space: pre; overflow-x: auto; line-height: 1.7; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,25,23,0.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 28px; width: 90%; max-width: 440px; }
+  .modal-title { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+  .modal-desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 8px; }
+
+  /* NOTIFICATION BADGE */
+  .notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red-text); margin-left: auto; }
+
+  /* FILTERS */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-chip { padding: 5px 13px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; cursor: pointer; background: var(--surface); color: var(--muted); transition: all 0.12s; }
+  .filter-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .ml-auto { margin-left: auto; }
+
+  /* TABS inside pages */
+  .tab-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab-btn { padding: 9px 16px; font-size: 13px; cursor: pointer; border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'DM Sans', sans-serif; transition: all 0.12s; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+  /* TOGGLE */
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 999px; cursor: pointer; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--text); }
+  .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 48px 20px; color: var(--hint); font-size: 13px; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 20px 16px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .slot-grid { grid-template-columns: repeat(4, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">Shopee · Livestream</div>
+      <div class="logo-name">The Purest Group</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Streamer</div>
+      <button class="nav-item active" onclick="goPage('book', this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M5 5.5h6M5 10.5h4"/></svg>
+        Book a slot
+      </button>
+      <button class="nav-item" onclick="goPage('mybookings', this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        My bookings
+      </button>
+      <div class="nav-section">Admin</div>
+      <button class="nav-item" onclick="goPage('admin', this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l6-2 6 2v8l-6 2-6-2z"/></svg>
+        Admin panel
+      </button>
+    </nav>
+    <div class="sidebar-footer">purest-shp-livestream</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ===== BOOK PAGE ===== -->
+    <div class="page active" id="page-book">
+      <div class="page-header">
+        <div class="page-title">Book a slot</div>
+        <div class="page-sub">Reserve your Shopee livestream time</div>
+      </div>
+      <div class="card" style="max-width:580px;">
+        <div id="book-alert"></div>
+        <div class="form-row">
+          <label>Full name</label>
+          <input type="text" id="b-name" placeholder="e.g. Dionis Tan" />
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label>Shopee handle</label>
+            <input type="text" id="b-handle" placeholder="@your_shopee_id" />
+          </div>
+          <div class="form-row">
+            <label>Email address</label>
+            <input type="email" id="b-email" placeholder="you@email.com" />
+            <div class="field-hint">For booking confirmation & change alerts</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Streamer type</label>
+          <div class="type-grid">
+            <div class="type-card" id="tc-brand" onclick="selectType('brand')">
+              <div class="type-card-title">Brand streamer</div>
+              <div class="type-card-desc">Exclusive slot — no one else can book the same hour</div>
+            </div>
+            <div class="type-card" id="tc-affiliate" onclick="selectType('affiliate')">
+              <div class="type-card-title">Affiliate streamer</div>
+              <div class="type-card-desc">Shared slot — up to 3 affiliates per hour</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Date</label>
+          <input type="date" id="b-date" onchange="loadSlots()" />
+        </div>
+        <div id="slot-section" style="display:none;">
+          <div class="slot-section-label">Select an hour slot</div>
+          <div class="slot-grid" id="slot-grid"></div>
+        </div>
+        <div class="form-row">
+          <label>Notes <span style="color:var(--hint);font-weight:400;">(optional)</span></label>
+          <input type="text" id="b-notes" placeholder="e.g. Skincare focus, need product brief" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="submitBooking()">Confirm booking</button>
+      </div>
+    </div>
+
+    <!-- ===== MY BOOKINGS PAGE ===== -->
+    <div class="page" id="page-mybookings">
+      <div class="page-header">
+        <div class="page-title">My bookings</div>
+        <div class="page-sub">Enter your email to view or cancel your slots</div>
+      </div>
+      <div class="card" style="max-width:440px; margin-bottom:20px;">
+        <div class="form-row" style="margin-bottom:12px;">
+          <label>Your email address</label>
+          <input type="email" id="my-email" placeholder="you@email.com" />
+        </div>
+        <button class="btn btn-primary" onclick="loadMyBookings()">View my bookings</button>
+      </div>
+      <div id="my-bookings-result"></div>
+    </div>
+
+    <!-- ===== ADMIN PAGE ===== -->
+    <div class="page" id="page-admin">
+      <div class="page-header">
+        <div class="page-title">Admin panel</div>
+        <div class="page-sub">Manage all livestream slots</div>
+      </div>
+      <div id="admin-login-wrap">
+        <div class="card" style="max-width:360px;">
+          <div class="card-title">Admin login</div>
+          <div id="admin-login-msg"></div>
+          <div class="form-row">
+            <label>Password</label>
+            <input type="password" id="admin-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')adminLogin()" />
+          </div>
+          <button class="btn btn-primary btn-full" onclick="adminLogin()">Login</button>
+        </div>
+      </div>
+      <div id="admin-panel-wrap" style="display:none;">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="adminTab('overview', this)">Overview</button>
+          <button class="tab-btn" onclick="adminTab('calendar', this)">Calendar</button>
+          <button class="tab-btn" onclick="adminTab('all', this)">All bookings</button>
+          <button class="tab-btn" onclick="adminTab('settings', this)">Settings</button>
+          <button class="btn btn-sm ml-auto" onclick="adminLogout()">Logout</button>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <div id="atab-overview" class="admin-tab">
+          <div class="stats-grid" id="admin-stats"></div>
+          <div class="card">
+            <div class="card-title">Upcoming streams — next 7 days</div>
+            <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Name</th><th>Handle</th><th>Type</th><th>Notes</th><th></th></tr></thead><tbody id="upcoming-tbody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- CALENDAR TAB -->
+        <div id="atab-calendar" class="admin-tab" style="display:none;">
+          <div class="card">
+            <div class="cal-nav">
+              <button class="btn btn-sm" onclick="calNav(-1)">&#8592;</button>
+              <span class="cal-nav-title" id="cal-label"></span>
+              <button class="btn btn-sm" onclick="calNav(1)">&#8594;</button>
+            </div>
+            <div class="cal-week-header">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="cal-month-grid" id="cal-grid"></div>
+          </div>
+          <div id="cal-day-detail" style="display:none;" class="card day-detail">
+            <div class="day-detail-title" id="cal-detail-title"></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Name</th><th>Handle</th><th>Type</th><th>Notes</th><th></th></tr></thead><tbody id="cal-detail-tbody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ALL BOOKINGS TAB -->
+        <div id="atab-all" class="admin-tab" style="display:none;">
+          <div class="filter-bar">
+            <span class="filter-chip active" onclick="setAdminFilter('all',this)">All</span>
+            <span class="filter-chip" onclick="setAdminFilter('brand',this)">Brand</span>
+            <span class="filter-chip" onclick="setAdminFilter('affiliate',this)">Affiliate</span>
+            <input type="month" id="admin-month-filter" onchange="renderAllBookings()" style="padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);margin-left:auto;" />
+            <button class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Name</th><th>Handle</th><th>Email</th><th>Type</th><th>Notes</th><th>Booked</th><th></th></tr></thead><tbody id="all-tbody"></tbody></table></div>
+          </div>
+          <div style="margin-top:12px;">
+            <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;">Copy-paste to Google Sheets (tab-separated)</div>
+            <div class="copy-box" id="copy-box"></div>
+          </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="atab-settings" class="admin-tab" style="display:none;">
+          <div class="card" style="max-width:520px;">
+            <div class="card-title">Booking rules</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Max bookings per streamer</div>
+                <div class="settings-desc">Applies to both brand and affiliate streamers</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button class="btn btn-sm" onclick="changeLimit(-1)">−</button>
+                <span style="font-size:15px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px;text-align:center;" id="limit-val">3</span>
+                <button class="btn btn-sm" onclick="changeLimit(1)">+</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Cancellation window</div>
+                <div class="settings-desc">Streamers can cancel up until this many hours before</div>
+              </div>
+              <select style="width:120px;" id="cancel-window">
+                <option value="24">24 hours</option>
+                <option value="48" selected>48 hours</option>
+                <option value="72">72 hours</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Max affiliates per slot</div>
+                <div class="settings-desc">How many affiliates can share one hour</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button class="btn btn-sm" onclick="changeAffLimit(-1)">−</button>
+                <span style="font-size:15px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px;text-align:center;" id="aff-limit-val">3</span>
+                <button class="btn btn-sm" onclick="changeAffLimit(1)">+</button>
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+            </div>
+          </div>
+          <div class="card" style="max-width:520px;">
+            <div class="card-title">Notifications</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Email on new booking</div>
+                <div class="settings-desc">Streamer receives confirmation email</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked id="notif-new"/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Email on slot change / removal</div>
+                <div class="settings-desc">Streamer is notified if admin edits their booking</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked id="notif-change"/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Email on cancellation</div>
+                <div class="settings-desc">Streamer receives cancellation confirmation</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked id="notif-cancel"/><span class="toggle-slider"></span></label>
+            </div>
+            <div style="margin-top:12px;">
+              <div class="alert alert-info" style="font-size:12px;">
+                <strong>Note:</strong> Email delivery requires a backend integration (e.g. SendGrid or Resend). In this hosted version, notification preferences are saved and ready to wire up. When deploying to Vercel with a database, connect your email provider to send real notifications.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">Edit booking</div>
+    <div id="edit-alert"></div>
+    <div class="form-row"><label>Name</label><input type="text" id="edit-name" /></div>
+    <div class="form-row"><label>Handle</label><input type="text" id="edit-handle" /></div>
+    <div class="form-row"><label>Notes</label><input type="text" id="edit-notes" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+      <button class="btn" onclick="closeModal('edit-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-title">Remove booking?</div>
+    <div class="modal-desc" id="delete-desc"></div>
+    <div class="alert alert-warn" style="margin-bottom:16px;font-size:12px;">The streamer will be notified by email that their slot has been removed.</div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="confirmDelete()">Remove booking</button>
+      <button class="btn" onclick="closeModal('delete-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CANCEL MODAL (streamer self-cancel) -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal">
+    <div class="modal-title">Cancel your booking?</div>
+    <div class="modal-desc" id="cancel-desc"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="confirmCancel()">Yes, cancel it</button>
+      <button class="btn" onclick="closeModal('cancel-modal')">Keep booking</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────
+const ADMIN_PW = 'Tpg@1234!';
+const SK = 'pst_shp_bookings_v2';
+const SK_SETTINGS = 'pst_shp_settings_v1';
+
+// ─── STATE ────────────────────────────────────
+let adminLoggedIn = false;
+let selectedType = null;
+let selectedHour = null;
+let adminFilter = 'all';
+let deleteTarget = null;
+let editTarget = null;
+let cancelTarget = null;
+let calYear, calMonth;
+let settings = { maxPerStreamer: 3, cancelWindow: 48, maxAffiliates: 3 };
+
+const today = new Date();
+calYear = today.getFullYear();
+calMonth = today.getMonth();
+
+// ─── STORAGE ─────────────────────────────────
+async function getBookings() {
+  try { const r = await window.storage.get(SK); return r ? JSON.parse(r.value) : []; }
+  catch(e) { return []; }
+}
+async function setBookings(data) { await window.storage.set(SK, JSON.stringify(data)); }
+async function getSettings() {
+  try { const r = await window.storage.get(SK_SETTINGS); return r ? { ...settings, ...JSON.parse(r.value) } : settings; }
+  catch(e) { return settings; }
+}
+async function setSettings(s) { await window.storage.set(SK_SETTINGS, JSON.stringify(s)); }
+
+// ─── NAVIGATION ──────────────────────────────
+function goPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'admin' && adminLoggedIn) refreshAdmin();
+}
+
+function adminTab(name, el) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('atab-' + name).style.display = 'block';
+  el.classList.add('active');
+  if (name === 'calendar') renderCal();
+  if (name === 'all') renderAllBookings();
+  if (name === 'overview') renderOverview();
+  if (name === 'settings') loadSettingsUI();
+}
+
+// ─── HELPERS ─────────────────────────────────
+function fmtDate(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  return d.toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function fmtDay(ds) { return new Date(ds + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' }); }
+function fmtHour(h) { return h.toString().padStart(2,'0') + ':00 – ' + ((h+1)%24).toString().padStart(2,'0') + ':00'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function todayStr() { return today.toISOString().split('T')[0]; }
+function canCancel(b) {
+  const slotDt = new Date(b.date + 'T' + b.hour.toString().padStart(2,'0') + ':00:00');
+  const diffHrs = (slotDt - new Date()) / 3600000;
+  return diffHrs >= settings.cancelWindow;
+}
+
+// ─── BOOKING FORM ─────────────────────────────
+function selectType(t) {
+  selectedType = t;
+  selectedHour = null;
+  document.getElementById('tc-brand').classList.remove('sel-brand');
+  document.getElementById('tc-affiliate').classList.remove('sel-affiliate');
+  if (t === 'brand') document.getElementById('tc-brand').classList.add('sel-brand');
+  else document.getElementById('tc-affiliate').classList.add('sel-affiliate');
+  const date = document.getElementById('b-date').value;
+  if (date) loadSlots();
+}
+
+async function loadSlots() {
+  const date = document.getElementById('b-date').value;
+  if (!date || !selectedType) { document.getElementById('slot-section').style.display = 'none'; return; }
+  settings = await getSettings();
+  const bookings = await getBookings();
+  const grid = document.getElementById('slot-grid');
+  document.getElementById('slot-section').style.display = 'block';
+  grid.innerHTML = '';
+  selectedHour = null;
+  for (let h = 0; h < 24; h++) {
+    const slotBks = bookings.filter(b => b.date === date && b.hour === h);
+    const hasBrand = slotBks.some(b => b.type === 'brand');
+    const affCount = slotBks.filter(b => b.type === 'affiliate').length;
+    let cls = '', capText = 'Free', taken = false;
+    if (hasBrand) { taken = true; cls = 'slot-taken'; capText = 'Brand'; }
+    else if (selectedType === 'brand' && slotBks.length > 0) { taken = true; cls = 'slot-taken'; capText = 'Taken'; }
+    else if (selectedType === 'affiliate' && affCount >= settings.maxAffiliates) { taken = true; cls = 'slot-taken'; capText = 'Full'; }
+    else if (selectedType === 'affiliate' && affCount > 0) { cls = 'slot-partial'; capText = affCount + '/' + settings.maxAffiliates; }
+    const el = document.createElement('div');
+    el.className = 'slot ' + cls;
+    el.innerHTML = '<div class="slot-time">' + h.toString().padStart(2,'0') + ':00</div><div class="slot-cap">' + capText + '</div>';
+    if (!taken) el.onclick = () => selectSlot(el, h);
+    el.dataset.h = h;
+    grid.appendChild(el);
+  }
+}
+
+function selectSlot(el, h) {
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('slot-selected'));
+  el.classList.add('slot-selected');
+  selectedHour = h;
+}
+
+async function submitBooking() {
+  const name = document.getElementById('b-name').value.trim();
+  const handle = document.getElementById('b-handle').value.trim();
+  const email = document.getElementById('b-email').value.trim();
+  const date = document.getElementById('b-date').value;
+  const notes = document.getElementById('b-notes').value.trim();
+  const alertEl = document.getElementById('book-alert');
+  alertEl.innerHTML = '';
+
+  if (!name || !handle || !email || !date || !selectedType || selectedHour === null) {
+    alertEl.innerHTML = '<div class="alert alert-error">Please fill in all fields and select a time slot.</div>'; return;
+  }
+  settings = await getSettings();
+  const bookings = await getBookings();
+
+  // Check streamer limit
+  const myBookings = bookings.filter(b => b.email.toLowerCase() === email.toLowerCase() && new Date(b.date + 'T12:00:00') >= today);
+  if (myBookings.length >= settings.maxPerStreamer) {
+    alertEl.innerHTML = '<div class="alert alert-error">You have reached the maximum of ' + settings.maxPerStreamer + ' active bookings. Please cancel an existing slot first.</div>'; return;
+  }
+  // Check slot availability again
+  const slotBks = bookings.filter(b => b.date === date && b.hour === selectedHour);
+  const hasBrand = slotBks.some(b => b.type === 'brand');
+  const affCount = slotBks.filter(b => b.type === 'affiliate').length;
+  if (hasBrand || (selectedType === 'brand' && slotBks.length > 0)) {
+    alertEl.innerHTML = '<div class="alert alert-error">This slot is no longer available.</div>'; return;
+  }
+  if (selectedType === 'affiliate' && affCount >= settings.maxAffiliates) {
+    alertEl.innerHTML = '<div class="alert alert-error">This slot is full.</div>'; return;
+  }
+
+  const entry = { id: Date.now() + '_' + Math.random().toString(36).slice(2), name, handle, email, type: selectedType, date, hour: selectedHour, notes, bookedAt: new Date().toISOString() };
+  bookings.push(entry);
+  await setBookings(bookings);
+
+  alertEl.innerHTML = '<div class="alert alert-success">Booking confirmed! <strong>' + esc(name) + '</strong> — ' + fmtDate(date) + ' at ' + fmtHour(selectedHour) + '. A confirmation has been noted.</div>';
+  document.getElementById('b-name').value = '';
+  document.getElementById('b-handle').value = '';
+  document.getElementById('b-email').value = '';
+  document.getElementById('b-notes').value = '';
+  selectedType = null; selectedHour = null;
+  document.getElementById('tc-brand').classList.remove('sel-brand');
+  document.getElementById('tc-affiliate').classList.remove('sel-affiliate');
+  document.getElementById('slot-section').style.display = 'none';
+}
+
+// ─── MY BOOKINGS ──────────────────────────────
+async function loadMyBookings() {
+  const email = document.getElementById('my-email').value.trim();
+  const el = document.getElementById('my-bookings-result');
+  if (!email) { el.innerHTML = '<div class="alert alert-error" style="max-width:440px;">Enter your email address.</div>'; return; }
+  settings = await getSettings();
+  const bookings = await getBookings();
+  const mine = bookings.filter(b => b.email.toLowerCase() === email.toLowerCase()).sort((a,b) => a.date === b.date ? a.hour - b.hour : a.date.localeCompare(b.date));
+  if (mine.length === 0) { el.innerHTML = '<div class="alert alert-info" style="max-width:440px;">No bookings found for this email.</div>'; return; }
+  let rows = mine.map(b => {
+    const isPast = new Date(b.date + 'T12:00:00') < today;
+    const canC = !isPast && canCancel(b);
+    return '<tr><td>' + fmtDate(b.date) + '</td><td>' + fmtDay(b.date) + '</td><td style="font-family:\'DM Mono\',monospace;font-size:12px;">' + fmtHour(b.hour) + '</td><td><span class="badge badge-' + b.type + '">' + b.type + '</span></td><td style="color:var(--muted);">' + esc(b.notes||'—') + '</td><td>' + (isPast ? '<span style="color:var(--hint);font-size:12px;">Past</span>' : canC ? '<button class="btn btn-sm btn-danger" onclick="openCancelModal(\'' + b.id + '\',\'' + esc(b.name) + '\',\'' + b.date + '\',' + b.hour + ')">Cancel</button>' : '<span style="font-size:12px;color:var(--hint);">Within ' + settings.cancelWindow + 'h</span>') + '</td></tr>';
+  }).join('');
+  el.innerHTML = '<div class="card"><div class="card-title">Bookings for ' + esc(email) + '</div><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Type</th><th>Notes</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+}
+
+// ─── ADMIN LOGIN ──────────────────────────────
+function adminLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  if (pw === ADMIN_PW) {
+    adminLoggedIn = true;
+    document.getElementById('admin-login-wrap').style.display = 'none';
+    document.getElementById('admin-panel-wrap').style.display = 'block';
+    refreshAdmin();
+  } else {
+    document.getElementById('admin-login-msg').innerHTML = '<div class="alert alert-error">Incorrect password.</div>';
+  }
+}
+function adminLogout() {
+  adminLoggedIn = false;
+  document.getElementById('admin-login-wrap').style.display = 'block';
+  document.getElementById('admin-panel-wrap').style.display = 'none';
+  document.getElementById('admin-pw').value = '';
+}
+function refreshAdmin() { renderOverview(); }
+
+// ─── ADMIN OVERVIEW ───────────────────────────
+async function renderOverview() {
+  const bookings = await getBookings();
+  const todayStr2 = todayStr();
+  const upcoming = bookings.filter(b => b.date >= todayStr2).sort((a,b)=>a.date===b.date?a.hour-b.hour:a.date.localeCompare(b.date));
+  const next7 = new Date(); next7.setDate(next7.getDate()+7);
+  const next7Str = next7.toISOString().split('T')[0];
+  const upNext = upcoming.filter(b => b.date <= next7Str);
+  const brandCount = bookings.filter(b=>b.type==='brand').length;
+  const affCount = bookings.filter(b=>b.type==='affiliate').length;
+  document.getElementById('admin-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total bookings</div><div class="stat-val">${bookings.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Upcoming</div><div class="stat-val">${upcoming.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Brand streams</div><div class="stat-val">${brandCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Affiliate streams</div><div class="stat-val">${affCount}</div></div>
+  `;
+  const tbody = document.getElementById('upcoming-tbody');
+  if (upNext.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No streams in the next 7 days.</td></tr>'; return; }
+  tbody.innerHTML = upNext.map(b => `
+    <tr>
+      <td>${fmtDate(b.date)}</td><td>${fmtDay(b.date)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;">${fmtHour(b.hour)}</td>
+      <td>${esc(b.name)}</td><td style="color:var(--muted);">${esc(b.handle)}</td>
+      <td><span class="badge badge-${b.type}">${b.type}</span></td>
+      <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
+      <td style="display:flex;gap:4px;">
+        <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}',${b.hour})">Remove</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ─── CALENDAR ─────────────────────────────────
+function calNav(d) { calMonth+=d; if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;} renderCal(); }
+
+async function renderCal() {
+  const bookings = await getBookings();
+  const label = new Date(calYear, calMonth, 1).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-label').textContent = label;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  for (let i=0;i<firstDay;i++) {
+    const d = new Date(calYear, calMonth, -firstDay+i+1);
+    grid.appendChild(makeCalCell(d, bookings, true));
+  }
+  for (let d=1;d<=daysInMonth;d++) grid.appendChild(makeCalCell(new Date(calYear,calMonth,d), bookings, false));
+}
+
+function makeCalCell(dt, bookings, other) {
+  const ds = dt.toISOString().split('T')[0];
+  const dayBks = bookings.filter(b=>b.date===ds).sort((a,b)=>a.hour-b.hour);
+  const cell = document.createElement('div');
+  cell.className = 'cal-cell' + (other?' other-month':'') + (ds===todayStr()?' today':'');
+  let inner = '<div class="cal-cell-num">' + dt.getDate() + '</div>';
+  dayBks.slice(0,3).forEach(b => {
+    inner += '<div class="cal-event cal-event-' + b.type + '">' + b.hour.toString().padStart(2,'0') + ':00 ' + esc(b.name) + '</div>';
+  });
+  if (dayBks.length > 3) inner += '<div class="cal-more">+' + (dayBks.length-3) + ' more</div>';
+  cell.innerHTML = inner;
+  cell.onclick = () => showCalDetail(ds, dayBks);
+  return cell;
+}
+
+function showCalDetail(ds, dayBks) {
+  const detail = document.getElementById('cal-day-detail');
+  document.getElementById('cal-detail-title').textContent = fmtDate(ds) + ' — ' + dayBks.length + ' stream' + (dayBks.length!==1?'s':'') + ' scheduled';
+  const tbody = document.getElementById('cal-detail-tbody');
+  if (dayBks.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No bookings.</td></tr>'; detail.style.display='block'; return; }
+  tbody.innerHTML = dayBks.map(b=>`
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;">${fmtHour(b.hour)}</td>
+      <td>${esc(b.name)}</td><td style="color:var(--muted);">${esc(b.handle)}</td>
+      <td><span class="badge badge-${b.type}">${b.type}</span></td>
+      <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
+      <td style="display:flex;gap:4px;">
+        <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}',${b.hour})">Remove</button>
+      </td>
+    </tr>`).join('');
+  detail.style.display = 'block';
+}
+
+// ─── ALL BOOKINGS ─────────────────────────────
+async function renderAllBookings() {
+  const bookings = await getBookings();
+  const monthVal = document.getElementById('admin-month-filter').value;
+  let filtered = adminFilter==='all' ? bookings : bookings.filter(b=>b.type===adminFilter);
+  if (monthVal) filtered = filtered.filter(b=>b.date.startsWith(monthVal));
+  filtered.sort((a,b)=>a.date===b.date?a.hour-b.hour:a.date.localeCompare(b.date));
+  const tbody = document.getElementById('all-tbody');
+  if (filtered.length===0) { tbody.innerHTML='<tr><td colspan="10" class="empty">No bookings found.</td></tr>'; document.getElementById('copy-box').textContent=''; return; }
+  tbody.innerHTML = filtered.map(b=>`
+    <tr>
+      <td>${fmtDate(b.date)}</td><td>${fmtDay(b.date)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;">${fmtHour(b.hour)}</td>
+      <td>${esc(b.name)}</td><td style="color:var(--muted);">${esc(b.handle)}</td>
+      <td style="color:var(--muted);font-size:12px;">${esc(b.email)}</td>
+      <td><span class="badge badge-${b.type}">${b.type}</span></td>
+      <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
+      <td style="color:var(--hint);font-size:11px;">${b.bookedAt?new Date(b.bookedAt).toLocaleDateString('en-SG'):''}</td>
+      <td style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}',${b.hour})">Remove</button>
+      </td>
+    </tr>`).join('');
+  // Copy box
+  const header = 'Date\tDay\tTime\tName\tHandle\tEmail\tType\tNotes';
+  const rows = filtered.map(b=>[fmtDate(b.date),fmtDay(b.date),fmtHour(b.hour),b.name,b.handle,b.email,b.type,b.notes||''].join('\t')).join('\n');
+  document.getElementById('copy-box').textContent = header + '\n' + rows;
+}
+
+function setAdminFilter(f, el) {
+  adminFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderAllBookings();
+}
+
+function exportCSV() {
+  const box = document.getElementById('copy-box').textContent;
+  if (!box) return;
+  const csv = box.split('\n').map(r=>r.split('\t').map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'purest_livestream_bookings.csv'; a.click();
+}
+
+// ─── EDIT / DELETE / CANCEL MODALS ───────────
+async function openEditModal(id) {
+  const bookings = await getBookings();
+  const b = bookings.find(x=>x.id===id);
+  if (!b) return;
+  editTarget = id;
+  document.getElementById('edit-name').value = b.name;
+  document.getElementById('edit-handle').value = b.handle;
+  document.getElementById('edit-notes').value = b.notes||'';
+  document.getElementById('edit-alert').innerHTML = '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+async function saveEdit() {
+  const bookings = await getBookings();
+  const idx = bookings.findIndex(x=>x.id===editTarget);
+  if (idx===-1) return;
+  bookings[idx].name = document.getElementById('edit-name').value.trim()||bookings[idx].name;
+  bookings[idx].handle = document.getElementById('edit-handle').value.trim()||bookings[idx].handle;
+  bookings[idx].notes = document.getElementById('edit-notes').value.trim();
+  await setBookings(bookings);
+  closeModal('edit-modal');
+  document.getElementById('edit-alert').innerHTML = '';
+  refreshAdmin();
+  renderAllBookings();
+  renderCal();
+  // Notify (placeholder)
+  console.log('NOTIFY: booking updated for', bookings[idx].email);
+}
+
+function openDeleteModal(id, name, date, hour) {
+  deleteTarget = id;
+  document.getElementById('delete-desc').textContent = name + ' — ' + fmtDate(date) + ' at ' + fmtHour(hour);
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+async function confirmDelete() {
+  const bookings = await getBookings();
+  const b = bookings.find(x=>x.id===deleteTarget);
+  const updated = bookings.filter(x=>x.id!==deleteTarget);
+  await setBookings(updated);
+  closeModal('delete-modal');
+  if (b) console.log('NOTIFY: booking removed for', b.email);
+  refreshAdmin(); renderAllBookings(); renderCal();
+}
+
+function openCancelModal(id, name, date, hour) {
+  cancelTarget = id;
+  document.getElementById('cancel-desc').textContent = 'Cancel your booking for ' + fmtDate(date) + ' at ' + fmtHour(hour) + '?';
+  document.getElementById('cancel-modal').classList.add('open');
+}
+
+async function confirmCancel() {
+  const bookings = await getBookings();
+  const b = bookings.find(x=>x.id===cancelTarget);
+  const updated = bookings.filter(x=>x.id!==cancelTarget);
+  await setBookings(updated);
+  closeModal('cancel-modal');
+  if (b) console.log('NOTIFY: cancelled for', b.email);
+  loadMyBookings();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); deleteTarget=null; editTarget=null; cancelTarget=null; }
+
+// ─── SETTINGS ─────────────────────────────────
+async function loadSettingsUI() {
+  settings = await getSettings();
+  document.getElementById('limit-val').textContent = settings.maxPerStreamer;
+  document.getElementById('aff-limit-val').textContent = settings.maxAffiliates;
+  document.getElementById('cancel-window').value = settings.cancelWindow;
+}
+
+function changeLimit(d) {
+  const el = document.getElementById('limit-val');
+  let v = Math.max(1, Math.min(20, parseInt(el.textContent)+d));
+  el.textContent = v;
+}
+function changeAffLimit(d) {
+  const el = document.getElementById('aff-limit-val');
+  let v = Math.max(1, Math.min(10, parseInt(el.textContent)+d));
+  el.textContent = v;
+}
+
+async function saveSettings() {
+  const s = {
+    maxPerStreamer: parseInt(document.getElementById('limit-val').textContent),
+    cancelWindow: parseInt(document.getElementById('cancel-window').value),
+    maxAffiliates: parseInt(document.getElementById('aff-limit-val').textContent)
+  };
+  await setSettings(s);
+  settings = s;
+  const btn = event.currentTarget;
+  btn.textContent = 'Saved!'; setTimeout(()=>btn.textContent='Save settings', 1500);
+}
+
+// ─── INIT ─────────────────────────────────────
+(async () => {
+  settings = await getSettings();
+  const minDate = todayStr();
+  const maxDt = new Date(today.getFullYear(), today.getMonth()+2, today.getDate());
+  document.getElementById('b-date').min = minDate;
+  document.getElementById('b-date').max = maxDt.toISOString().split('T')[0];
+  const nowM = today.toISOString().slice(0,7);
+  document.getElementById('admin-month-filter').value = nowM;
+})();
+</script>
+</body>
+</html>
