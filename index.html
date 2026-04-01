@@ -428,12 +428,21 @@
 
         <!-- ALL BOOKINGS TAB -->
         <div id="atab-all" class="admin-tab" style="display:none;">
-          <div class="filter-bar">
+          <div class="filter-bar" style="flex-wrap:wrap;gap:8px;align-items:center;">
             <span class="filter-chip active" onclick="setAdminFilter('all',this)">All</span>
             <span class="filter-chip" onclick="setAdminFilter('brand',this)">Brand</span>
             <span class="filter-chip" onclick="setAdminFilter('affiliate',this)">Affiliate</span>
-            <input type="month" id="admin-month-filter" onchange="renderAllBookings()" style="padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);margin-left:auto;" />
+            <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+              <label style="font-size:11px;color:var(--muted);white-space:nowrap;">From</label>
+              <input type="date" id="filter-date-from" onchange="renderAllBookings()" style="padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);" />
+              <label style="font-size:11px;color:var(--muted);white-space:nowrap;">To</label>
+              <input type="date" id="filter-date-to" onchange="renderAllBookings()" style="padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);" />
+              <button type="button" class="btn btn-sm" onclick="clearDateFilter()">Clear</button>
+            </div>
             <button type="button" class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
+          </div>
+          <div style="margin-bottom:12px;">
+            <input type="text" id="admin-search" placeholder="Search by name, handle or email..." oninput="renderAllBookings()" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);" />
           </div>
           <div class="card" style="padding:0;overflow:hidden;">
             <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Name</th><th>Handle</th><th>Email</th><th>Type</th><th>Notes</th><th>Booked</th><th></th></tr></thead><tbody id="all-tbody"></tbody></table></div>
@@ -691,12 +700,41 @@ function fmtHours(hours) {
   return sorted.map(h => h.toString().padStart(2,'0') + ':00').join(', ');
 }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function todayStr() { return today.toISOString().split('T')[0]; }
+function todayStr() {
+  return today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+}
 function canCancel(b) {
   const h = Array.isArray(b.hours) ? Math.min(...b.hours) : b.hour;
   const slotDt = new Date(b.date + 'T' + h.toString().padStart(2,'0') + ':00:00');
   const diffHrs = (slotDt - new Date()) / 3600000;
   return diffHrs >= settings.cancelWindow;
+}
+
+// ─── NOTIFICATIONS ────────────────────────────
+const SB_NOTIFY_FN = SB_URL + '/functions/v1/send-booking-email';
+
+async function sendNotification(type, booking) {
+  try {
+    await fetch(SB_NOTIFY_FN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+      body: JSON.stringify({
+        type,
+        booking: {
+          name: booking.name,
+          handle: booking.handle,
+          email: booking.email,
+          streamerType: booking.type,
+          date: booking.date,
+          hours: Array.isArray(booking.hours) ? booking.hours : [booking.hour],
+          notes: booking.notes || '',
+          ref: booking.id.split('_')[0]
+        }
+      })
+    });
+  } catch(e) {
+    console.warn('Notification failed (non-blocking):', e.message);
+  }
 }
 
 // ─── BOOKING FORM ─────────────────────────────
@@ -807,6 +845,7 @@ async function submitBooking() {
   try {
     alertEl.innerHTML = '<div class="alert alert-info">Saving your booking...</div>';
     await addBooking(entry);
+    sendNotification('confirmed', entry); // fire and forget
   } catch(e) {
     alertEl.innerHTML = '<div class="alert alert-error">Failed to save booking. Please try again.</div>';
     console.error(e); return;
@@ -939,7 +978,7 @@ async function renderCal() {
 }
 
 function makeCalCell(dt, bookings, other) {
-  const ds = dt.toISOString().split('T')[0];
+  const ds = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
   const dayBks = bookings.filter(b=>b.date===ds).sort((a,b)=>a.hour-b.hour);
   const cell = document.createElement('div');
   cell.className = 'cal-cell' + (other?' other-month':'') + (ds===todayStr()?' today':'');
@@ -977,10 +1016,19 @@ function showCalDetail(ds, dayBks) {
 // ─── ALL BOOKINGS ─────────────────────────────
 async function renderAllBookings() {
   const bookings = await getBookings();
-  const monthVal = document.getElementById('admin-month-filter').value;
-  let filtered = adminFilter==='all' ? bookings : bookings.filter(b=>b.type===adminFilter);
-  if (monthVal) filtered = filtered.filter(b=>b.date.startsWith(monthVal));
-  filtered.sort((a,b)=>a.date===b.date?a.hour-b.hour:a.date.localeCompare(b.date));
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo = document.getElementById('filter-date-to').value;
+  const search = (document.getElementById('admin-search').value || '').toLowerCase().trim();
+
+  let filtered = adminFilter === 'all' ? bookings : bookings.filter(b => b.type === adminFilter);
+  if (dateFrom) filtered = filtered.filter(b => b.date >= dateFrom);
+  if (dateTo) filtered = filtered.filter(b => b.date <= dateTo);
+  if (search) filtered = filtered.filter(b =>
+    (b.name||'').toLowerCase().includes(search) ||
+    (b.handle||'').toLowerCase().includes(search) ||
+    (b.email||'').toLowerCase().includes(search)
+  );
+  filtered.sort((a,b) => a.date === b.date ? a.hour - b.hour : a.date.localeCompare(b.date));
   const tbody = document.getElementById('all-tbody');
   if (filtered.length===0) { tbody.innerHTML='<tr><td colspan="10" class="empty">No bookings found.</td></tr>'; document.getElementById('copy-box').textContent=''; return; }
   tbody.innerHTML = filtered.map(b=>{
@@ -1006,6 +1054,12 @@ async function renderAllBookings() {
     return [fmtDate(b.date),fmtDay(b.date),hoursDisplay,b.name,b.handle,b.email,b.type,b.notes||''].join('\t');
   }).join('\n');
   document.getElementById('copy-box').textContent = header + '\n' + rows;
+}
+
+function clearDateFilter() {
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  renderAllBookings();
 }
 
 function setAdminFilter(f, el) {
@@ -1044,6 +1098,10 @@ async function saveEdit() {
   if (!name || !handle) return;
   try {
     await updateBooking(editTarget, { name, handle, notes });
+    // Fetch updated booking to notify with correct details
+    const bookings = await getBookings();
+    const b = bookings.find(x => x.id === editTarget);
+    if (b) sendNotification('changed', { ...b, name, handle, notes });
     closeModal('edit-modal');
     document.getElementById('edit-alert').innerHTML = '';
     refreshAdmin(); renderAllBookings(); renderCal();
@@ -1060,7 +1118,10 @@ function openDeleteModal(id, name, date, hoursDisplay) {
 
 async function confirmDelete() {
   try {
+    const bookings = await getBookings();
+    const b = bookings.find(x => x.id === deleteTarget);
     await deleteBooking(deleteTarget);
+    if (b) sendNotification('removed_by_admin', b);
     closeModal('delete-modal');
     refreshAdmin(); renderAllBookings(); renderCal();
   } catch(e) { console.error('delete failed', e); }
@@ -1074,7 +1135,10 @@ function openCancelModal(id, name, date, hoursDisplay) {
 
 async function confirmCancel() {
   try {
+    const bookings = await getBookings();
+    const b = bookings.find(x => x.id === cancelTarget);
     await deleteBooking(cancelTarget);
+    if (b) sendNotification('cancelled', b);
     closeModal('cancel-modal');
     loadMyBookings();
   } catch(e) { console.error('cancel failed', e); }
@@ -1126,10 +1190,9 @@ async function saveSettings() {
   settings = await getSettings();
   const minDate = todayStr();
   const maxDt = new Date(today.getFullYear(), today.getMonth()+2, today.getDate());
+  const maxDate = maxDt.getFullYear() + '-' + String(maxDt.getMonth()+1).padStart(2,'0') + '-' + String(maxDt.getDate()).padStart(2,'0');
   document.getElementById('b-date').min = minDate;
-  document.getElementById('b-date').max = maxDt.toISOString().split('T')[0];
-  const nowM = today.toISOString().slice(0,7);
-  document.getElementById('admin-month-filter').value = nowM;
+  document.getElementById('b-date').max = maxDate;
 })();
 </script>
 </body>
