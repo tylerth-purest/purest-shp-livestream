@@ -575,8 +575,8 @@
 <script>
 // ─── CONSTANTS ────────────────────────────────
 const ADMIN_PW = 'Tpg@1234!';
-const SK = 'pst_shp_bookings_v2';
-const SK_SETTINGS = 'pst_shp_settings_v1';
+const SB_URL = 'https://hmkddvattmmekffgxgnp.supabase.co';
+const SB_KEY = 'sb_publishable_yacGbDYqof1gkjC8I_MOIQ_7j4E3Ahw';
 
 // ─── STATE ────────────────────────────────────
 let adminLoggedIn = false;
@@ -593,17 +593,65 @@ const today = new Date();
 calYear = today.getFullYear();
 calMonth = today.getMonth();
 
+// ─── SUPABASE HELPERS ─────────────────────────
+function sbHeaders() {
+  return { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+}
+async function sbGet(table, params) {
+  const q = params ? '?' + params : '';
+  const r = await fetch(SB_URL + '/rest/v1/' + table + q, { headers: sbHeaders() });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(table, data) {
+  const r = await fetch(SB_URL + '/rest/v1/' + table, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(data) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpdate(table, match, data) {
+  const r = await fetch(SB_URL + '/rest/v1/' + table + '?' + match, { method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(data) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(table, match) {
+  const r = await fetch(SB_URL + '/rest/v1/' + table + '?' + match, { method: 'DELETE', headers: sbHeaders() });
+  if (!r.ok) throw new Error(await r.text());
+  return true;
+}
+
 // ─── STORAGE ─────────────────────────────────
 async function getBookings() {
-  try { const r = await window.storage.get(SK); return r ? JSON.parse(r.value) : []; }
-  catch(e) { return []; }
+  try {
+    const rows = await sbGet('bookings', 'select=*&order=date.asc,hour.asc');
+    return rows.map(r => ({ id: r.id, name: r.name, handle: r.handle, email: r.email, type: r.type, date: r.date, hours: r.hours, hour: r.hour, notes: r.notes, bookedAt: r.booked_at }));
+  } catch(e) { console.error('getBookings:', e); return []; }
 }
-async function setBookings(data) { await window.storage.set(SK, JSON.stringify(data)); }
+async function addBooking(entry) {
+  await sbInsert('bookings', { id: entry.id, name: entry.name, handle: entry.handle, email: entry.email, type: entry.type, date: entry.date, hours: entry.hours, hour: entry.hour, notes: entry.notes, booked_at: entry.bookedAt });
+}
+async function updateBooking(id, data) {
+  const mapped = {};
+  if (data.name !== undefined) mapped.name = data.name;
+  if (data.handle !== undefined) mapped.handle = data.handle;
+  if (data.notes !== undefined) mapped.notes = data.notes;
+  await sbUpdate('bookings', 'id=eq.' + id, mapped);
+}
+async function deleteBooking(id) {
+  await sbDelete('bookings', 'id=eq.' + id);
+}
 async function getSettings() {
-  try { const r = await window.storage.get(SK_SETTINGS); return r ? { ...settings, ...JSON.parse(r.value) } : settings; }
-  catch(e) { return settings; }
+  try {
+    const rows = await sbGet('settings', 'select=*&id=eq.1');
+    if (rows && rows.length > 0) {
+      const r = rows[0];
+      return { maxPerStreamer: r.max_per_streamer, cancelWindow: r.cancel_window, maxAffiliates: r.max_affiliates, maxHoursPerBooking: r.max_hours_per_booking };
+    }
+    return settings;
+  } catch(e) { return settings; }
 }
-async function setSettings(s) { await window.storage.set(SK_SETTINGS, JSON.stringify(s)); }
+async function saveSettingsToDB(s) {
+  await sbUpdate('settings', 'id=eq.1', { max_per_streamer: s.maxPerStreamer, cancel_window: s.cancelWindow, max_affiliates: s.maxAffiliates, max_hours_per_booking: s.maxHoursPerBooking });
+}
 
 // ─── NAVIGATION ──────────────────────────────
 function goPage(name, el) {
@@ -755,8 +803,14 @@ async function submitBooking() {
 
   const sortedHours = [...selectedHours].sort((a,b)=>a-b);
   const entry = { id: Date.now() + '_' + Math.random().toString(36).slice(2), name, handle, email, type: selectedType, date, hours: sortedHours, hour: sortedHours[0], notes, bookedAt: new Date().toISOString() };
-  bookings.push(entry);
-  await setBookings(bookings);
+  
+  try {
+    alertEl.innerHTML = '<div class="alert alert-info">Saving your booking...</div>';
+    await addBooking(entry);
+  } catch(e) {
+    alertEl.innerHTML = '<div class="alert alert-error">Failed to save booking. Please try again.</div>';
+    console.error(e); return;
+  }
 
   // Show confirmation screen
   document.getElementById('cf-name').textContent = name;
@@ -984,20 +1038,18 @@ async function openEditModal(id) {
 }
 
 async function saveEdit() {
-  const bookings = await getBookings();
-  const idx = bookings.findIndex(x=>x.id===editTarget);
-  if (idx===-1) return;
-  bookings[idx].name = document.getElementById('edit-name').value.trim()||bookings[idx].name;
-  bookings[idx].handle = document.getElementById('edit-handle').value.trim()||bookings[idx].handle;
-  bookings[idx].notes = document.getElementById('edit-notes').value.trim();
-  await setBookings(bookings);
-  closeModal('edit-modal');
-  document.getElementById('edit-alert').innerHTML = '';
-  refreshAdmin();
-  renderAllBookings();
-  renderCal();
-  // Notify (placeholder)
-  console.log('NOTIFY: booking updated for', bookings[idx].email);
+  const name = document.getElementById('edit-name').value.trim();
+  const handle = document.getElementById('edit-handle').value.trim();
+  const notes = document.getElementById('edit-notes').value.trim();
+  if (!name || !handle) return;
+  try {
+    await updateBooking(editTarget, { name, handle, notes });
+    closeModal('edit-modal');
+    document.getElementById('edit-alert').innerHTML = '';
+    refreshAdmin(); renderAllBookings(); renderCal();
+  } catch(e) {
+    document.getElementById('edit-alert').innerHTML = '<div class="alert alert-error">Failed to save. Try again.</div>';
+  }
 }
 
 function openDeleteModal(id, name, date, hoursDisplay) {
@@ -1007,13 +1059,11 @@ function openDeleteModal(id, name, date, hoursDisplay) {
 }
 
 async function confirmDelete() {
-  const bookings = await getBookings();
-  const b = bookings.find(x=>x.id===deleteTarget);
-  const updated = bookings.filter(x=>x.id!==deleteTarget);
-  await setBookings(updated);
-  closeModal('delete-modal');
-  if (b) console.log('NOTIFY: booking removed for', b.email);
-  refreshAdmin(); renderAllBookings(); renderCal();
+  try {
+    await deleteBooking(deleteTarget);
+    closeModal('delete-modal');
+    refreshAdmin(); renderAllBookings(); renderCal();
+  } catch(e) { console.error('delete failed', e); }
 }
 
 function openCancelModal(id, name, date, hoursDisplay) {
@@ -1023,13 +1073,11 @@ function openCancelModal(id, name, date, hoursDisplay) {
 }
 
 async function confirmCancel() {
-  const bookings = await getBookings();
-  const b = bookings.find(x=>x.id===cancelTarget);
-  const updated = bookings.filter(x=>x.id!==cancelTarget);
-  await setBookings(updated);
-  closeModal('cancel-modal');
-  if (b) console.log('NOTIFY: cancelled for', b.email);
-  loadMyBookings();
+  try {
+    await deleteBooking(cancelTarget);
+    closeModal('cancel-modal');
+    loadMyBookings();
+  } catch(e) { console.error('cancel failed', e); }
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); deleteTarget=null; editTarget=null; cancelTarget=null; }
@@ -1045,18 +1093,15 @@ async function loadSettingsUI() {
 
 function changeLimit(d) {
   const el = document.getElementById('limit-val');
-  let v = Math.max(1, Math.min(20, parseInt(el.textContent)+d));
-  el.textContent = v;
+  el.textContent = Math.max(1, Math.min(20, parseInt(el.textContent)+d));
 }
 function changeAffLimit(d) {
   const el = document.getElementById('aff-limit-val');
-  let v = Math.max(1, Math.min(10, parseInt(el.textContent)+d));
-  el.textContent = v;
+  el.textContent = Math.max(1, Math.min(10, parseInt(el.textContent)+d));
 }
 function changeHourLimit(d) {
   const el = document.getElementById('hour-limit-val');
-  let v = Math.max(1, Math.min(12, parseInt(el.textContent)+d));
-  el.textContent = v;
+  el.textContent = Math.max(1, Math.min(12, parseInt(el.textContent)+d));
 }
 
 async function saveSettings() {
@@ -1066,10 +1111,14 @@ async function saveSettings() {
     maxAffiliates: parseInt(document.getElementById('aff-limit-val').textContent),
     maxHoursPerBooking: parseInt(document.getElementById('hour-limit-val').textContent)
   };
-  await setSettings(s);
-  settings = s;
-  const btn = event.currentTarget;
-  btn.textContent = 'Saved!'; setTimeout(()=>btn.textContent='Save settings', 1500);
+  try {
+    await saveSettingsToDB(s);
+    settings = s;
+    const btn = event.currentTarget;
+    btn.textContent = 'Saved!'; setTimeout(()=>btn.textContent='Save settings', 1500);
+  } catch(e) {
+    alert('Failed to save settings. Check console.');
+  }
 }
 
 // ─── INIT ─────────────────────────────────────
