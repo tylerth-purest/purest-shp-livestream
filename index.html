@@ -72,12 +72,12 @@
   .field-hint { font-size: 11px; color: var(--hint); margin-top: 4px; }
 
   /* BUTTONS */
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--surface); color: var(--text); transition: all 0.15s; }
-  .btn:hover { background: var(--bg); }
-  .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
-  .btn-primary:hover { opacity: 0.88; }
-  .btn-danger { color: var(--red-text); border-color: var(--red-border); }
-  .btn-danger:hover { background: var(--red-bg); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--surface); color: var(--text); transition: background 0.15s, opacity 0.15s; }
+  .btn:hover { background: var(--bg); color: var(--text); }
+  .btn-primary { background: var(--text); color: #fff !important; border-color: var(--text); }
+  .btn-primary:hover { background: #3a3835; color: #fff !important; opacity: 1; }
+  .btn-danger { color: var(--red-text); border-color: var(--red-border); background: var(--surface); }
+  .btn-danger:hover { background: var(--red-bg); color: var(--red-text); }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
   .btn-full { width: 100%; justify-content: center; padding: 11px; font-size: 14px; }
 
@@ -236,16 +236,16 @@
     </div>
     <nav class="nav">
       <div class="nav-section">Streamer</div>
-      <button class="nav-item active" onclick="goPage('book', this)">
+      <button type="button" class="nav-item active" onclick="goPage('book', this)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M5 5.5h6M5 10.5h4"/></svg>
         Book a slot
       </button>
-      <button class="nav-item" onclick="goPage('mybookings', this)">
+      <button type="button" class="nav-item" onclick="goPage('mybookings', this)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
         My bookings
       </button>
       <div class="nav-section">Admin</div>
-      <button class="nav-item" onclick="goPage('admin', this)">
+      <button type="button" class="nav-item" onclick="goPage('admin', this)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l6-2 6 2v8l-6 2-6-2z"/></svg>
         Admin panel
       </button>
@@ -309,7 +309,7 @@
           <label>Notes <span style="color:var(--hint);font-weight:400;">(optional)</span></label>
           <input type="text" id="b-notes" placeholder="e.g. Skincare focus, need product brief" />
         </div>
-        <button class="btn btn-primary btn-full" onclick="submitBooking()">Confirm booking</button>
+        <button type="button" class="btn btn-primary btn-full" onclick="submitBooking()">Confirm booking</button>
       </div>
 
       <!-- CONFIRMATION SCREEN -->
@@ -350,8 +350,8 @@
           </div>
         </div>
         <div class="confirm-actions">
-          <button class="btn btn-primary" onclick="bookAnother()">Book another slot</button>
-          <button class="btn" onclick="viewMyBookings()">View my bookings</button>
+          <button type="button" class="btn btn-primary" onclick="bookAnother()">Book another slot</button>
+          <button type="button" class="btn" onclick="viewMyBookings()">View my bookings</button>
         </div>
       </div>
     </div>
@@ -367,7 +367,7 @@
           <label>Your email address</label>
           <input type="email" id="my-email" placeholder="you@email.com" />
         </div>
-        <button class="btn btn-primary" onclick="loadMyBookings()">View my bookings</button>
+        <button type="button" class="btn btn-primary" onclick="loadMyBookings()">View my bookings</button>
       </div>
       <div id="my-bookings-result"></div>
     </div>
@@ -386,16 +386,16 @@
             <label>Password</label>
             <input type="password" id="admin-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')adminLogin()" />
           </div>
-          <button class="btn btn-primary btn-full" onclick="adminLogin()">Login</button>
+          <button type="button" class="btn btn-primary btn-full" onclick="adminLogin()">Login</button>
         </div>
       </div>
       <div id="admin-panel-wrap" style="display:none;">
         <div class="tab-bar">
-          <button class="tab-btn active" onclick="adminTab('overview', this)">Overview</button>
-          <button class="tab-btn" onclick="adminTab('calendar', this)">Calendar</button>
-          <button class="tab-btn" onclick="adminTab('all', this)">All bookings</button>
-          <button class="tab-btn" onclick="adminTab('settings', this)">Settings</button>
-          <button class="btn btn-sm ml-auto" onclick="adminLogout()">Logout</button>
+          <button type="button" class="tab-btn active" onclick="adminTab('overview', this)">Overview</button>
+          <button type="button" class="tab-btn" onclick="adminTab('calendar', this)">Calendar</button>
+          <button type="button" class="tab-btn" onclick="adminTab('all', this)">All bookings</button>
+          <button type="button" class="tab-btn" onclick="adminTab('settings', this)">Settings</button>
+          <button type="button" class="btn btn-sm ml-auto" onclick="adminLogout()">Logout</button>
         </div>
 
         <!-- OVERVIEW TAB -->
@@ -411,9 +411,9 @@
         <div id="atab-calendar" class="admin-tab" style="display:none;">
           <div class="card">
             <div class="cal-nav">
-              <button class="btn btn-sm" onclick="calNav(-1)">&#8592;</button>
+              <button type="button" class="btn btn-sm" onclick="calNav(-1)">&#8592;</button>
               <span class="cal-nav-title" id="cal-label"></span>
-              <button class="btn btn-sm" onclick="calNav(1)">&#8594;</button>
+              <button type="button" class="btn btn-sm" onclick="calNav(1)">&#8594;</button>
             </div>
             <div class="cal-week-header">
               <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
@@ -433,7 +433,7 @@
             <span class="filter-chip" onclick="setAdminFilter('brand',this)">Brand</span>
             <span class="filter-chip" onclick="setAdminFilter('affiliate',this)">Affiliate</span>
             <input type="month" id="admin-month-filter" onchange="renderAllBookings()" style="padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);margin-left:auto;" />
-            <button class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
+            <button type="button" class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
           </div>
           <div class="card" style="padding:0;overflow:hidden;">
             <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Name</th><th>Handle</th><th>Email</th><th>Type</th><th>Notes</th><th>Booked</th><th></th></tr></thead><tbody id="all-tbody"></tbody></table></div>
@@ -454,9 +454,9 @@
                 <div class="settings-desc">Applies to both brand and affiliate streamers</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
-                <button class="btn btn-sm" onclick="changeLimit(-1)">−</button>
+                <button type="button" class="btn btn-sm" onclick="changeLimit(-1)">−</button>
                 <span style="font-size:15px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px;text-align:center;" id="limit-val">3</span>
-                <button class="btn btn-sm" onclick="changeLimit(1)">+</button>
+                <button type="button" class="btn btn-sm" onclick="changeLimit(1)">+</button>
               </div>
             </div>
             <div class="settings-row">
@@ -476,9 +476,9 @@
                 <div class="settings-desc">How many affiliates can share one hour</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
-                <button class="btn btn-sm" onclick="changeAffLimit(-1)">−</button>
+                <button type="button" class="btn btn-sm" onclick="changeAffLimit(-1)">−</button>
                 <span style="font-size:15px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px;text-align:center;" id="aff-limit-val">3</span>
-                <button class="btn btn-sm" onclick="changeAffLimit(1)">+</button>
+                <button type="button" class="btn btn-sm" onclick="changeAffLimit(1)">+</button>
               </div>
             </div>
             <div class="settings-row">
@@ -487,13 +487,13 @@
                 <div class="settings-desc">How many hour slots a streamer can pick in one booking</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
-                <button class="btn btn-sm" onclick="changeHourLimit(-1)">−</button>
+                <button type="button" class="btn btn-sm" onclick="changeHourLimit(-1)">−</button>
                 <span style="font-size:15px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px;text-align:center;" id="hour-limit-val">3</span>
-                <button class="btn btn-sm" onclick="changeHourLimit(1)">+</button>
+                <button type="button" class="btn btn-sm" onclick="changeHourLimit(1)">+</button>
               </div>
             </div>
             <div style="margin-top:16px;">
-              <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+              <button type="button" class="btn btn-primary" onclick="saveSettings()">Save settings</button>
             </div>
           </div>
           <div class="card" style="max-width:520px;">
@@ -541,8 +541,8 @@
     <div class="form-row"><label>Handle</label><input type="text" id="edit-handle" /></div>
     <div class="form-row"><label>Notes</label><input type="text" id="edit-notes" /></div>
     <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
-      <button class="btn" onclick="closeModal('edit-modal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+      <button type="button" class="btn" onclick="closeModal('edit-modal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -554,8 +554,8 @@
     <div class="modal-desc" id="delete-desc"></div>
     <div class="alert alert-warn" style="margin-bottom:16px;font-size:12px;">The streamer will be notified by email that their slot has been removed.</div>
     <div class="modal-actions">
-      <button class="btn btn-danger" onclick="confirmDelete()">Remove booking</button>
-      <button class="btn" onclick="closeModal('delete-modal')">Cancel</button>
+      <button type="button" class="btn btn-danger" onclick="confirmDelete()">Remove booking</button>
+      <button type="button" class="btn" onclick="closeModal('delete-modal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -566,8 +566,8 @@
     <div class="modal-title">Cancel your booking?</div>
     <div class="modal-desc" id="cancel-desc"></div>
     <div class="modal-actions">
-      <button class="btn btn-danger" onclick="confirmCancel()">Yes, cancel it</button>
-      <button class="btn" onclick="closeModal('cancel-modal')">Keep booking</button>
+      <button type="button" class="btn btn-danger" onclick="confirmCancel()">Yes, cancel it</button>
+      <button type="button" class="btn" onclick="closeModal('cancel-modal')">Keep booking</button>
     </div>
   </div>
 </div>
@@ -807,7 +807,7 @@ async function loadMyBookings() {
     const isPast = new Date(b.date + 'T12:00:00') < today;
     const canC = !isPast && canCancel(b);
     const hoursDisplay = Array.isArray(b.hours) ? b.hours.sort((a,c)=>a-c).map(h=>h.toString().padStart(2,'0')+':00').join(', ') : fmtHour(b.hour);
-    return '<tr><td>' + fmtDate(b.date) + '</td><td>' + fmtDay(b.date) + '</td><td style="font-family:\'DM Mono\',monospace;font-size:12px;">' + hoursDisplay + '</td><td><span class="badge badge-' + b.type + '">' + b.type + '</span></td><td style="color:var(--muted);">' + esc(b.notes||'—') + '</td><td>' + (isPast ? '<span style="color:var(--hint);font-size:12px;">Past</span>' : canC ? '<button class="btn btn-sm btn-danger" onclick="openCancelModal(\'' + b.id + '\',\'' + esc(b.name) + '\',\'' + b.date + '\',\'' + hoursDisplay + '\')">Cancel</button>' : '<span style="font-size:12px;color:var(--hint);">Within ' + settings.cancelWindow + 'h</span>') + '</td></tr>';
+    return '<tr><td>' + fmtDate(b.date) + '</td><td>' + fmtDay(b.date) + '</td><td style="font-family:\'DM Mono\',monospace;font-size:12px;">' + hoursDisplay + '</td><td><span class="badge badge-' + b.type + '">' + b.type + '</span></td><td style="color:var(--muted);">' + esc(b.notes||'—') + '</td><td>' + (isPast ? '<span style="color:var(--hint);font-size:12px;">Past</span>' : canC ? '<button type="button" class="btn btn-sm btn-danger" onclick="openCancelModal(\'' + b.id + '\',\'' + esc(b.name) + '\',\'' + b.date + '\',\'' + hoursDisplay + '\')">Cancel</button>' : '<span style="font-size:12px;color:var(--hint);">Within ' + settings.cancelWindow + 'h</span>') + '</td></tr>';
   }).join('');
   el.innerHTML = '<div class="card"><div class="card-title">Bookings for ' + esc(email) + '</div><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Type</th><th>Notes</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
 }
@@ -859,8 +859,8 @@ async function renderOverview() {
       <td><span class="badge badge-${b.type}">${b.type}</span></td>
       <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
       <td style="display:flex;gap:4px;">
-        <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
+        <button type="button" class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
       </td>
     </tr>`;
   }).join('');
@@ -912,8 +912,8 @@ function showCalDetail(ds, dayBks) {
       <td><span class="badge badge-${b.type}">${b.type}</span></td>
       <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
       <td style="display:flex;gap:4px;">
-        <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
+        <button type="button" class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
       </td>
     </tr>`;
   }).join('');
@@ -940,8 +940,8 @@ async function renderAllBookings() {
       <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
       <td style="color:var(--hint);font-size:11px;">${b.bookedAt?new Date(b.bookedAt).toLocaleDateString('en-SG'):''}</td>
       <td style="display:flex;gap:4px;flex-shrink:0;">
-        <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
+        <button type="button" class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
       </td>
     </tr>`;
   }).join('');
