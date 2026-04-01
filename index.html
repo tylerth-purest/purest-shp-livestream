@@ -201,6 +201,21 @@
   /* EMPTY STATE */
   .empty { text-align: center; padding: 48px 20px; color: var(--hint); font-size: 13px; }
 
+  /* CONFIRMATION SCREEN */
+  .confirm-screen { display: none; max-width: 580px; }
+  .confirm-screen.show { display: block; }
+  .confirm-icon { width: 52px; height: 52px; border-radius: 50%; background: var(--aff-bg); border: 1px solid var(--aff-border); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+  .confirm-icon svg { width: 24px; height: 24px; stroke: var(--aff-text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .confirm-title { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
+  .confirm-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .confirm-card { background: var(--bg); border-radius: var(--radius-sm); padding: 4px 20px; margin-bottom: 20px; }
+  .confirm-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 16px; }
+  .confirm-row:last-child { border-bottom: none; }
+  .confirm-row-label { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .confirm-row-val { font-weight: 500; text-align: right; }
+  .confirm-hours { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
+  .confirm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
   @media (max-width: 768px) {
     .sidebar { display: none; }
     .main { margin-left: 0; padding: 20px 16px; }
@@ -247,7 +262,9 @@
         <div class="page-title">Book a slot</div>
         <div class="page-sub">Reserve your Shopee livestream time</div>
       </div>
-      <div class="card" style="max-width:580px;">
+
+      <!-- BOOKING FORM -->
+      <div class="card" style="max-width:580px;" id="book-form-wrap">
         <div id="book-alert"></div>
         <div class="form-row">
           <label>Full name</label>
@@ -261,7 +278,7 @@
           <div class="form-row">
             <label>Email address</label>
             <input type="email" id="b-email" placeholder="you@email.com" />
-            <div class="field-hint">For booking confirmation & change alerts</div>
+            <div class="field-hint">For booking confirmation &amp; change alerts</div>
           </div>
         </div>
         <div class="form-row">
@@ -282,7 +299,10 @@
           <input type="date" id="b-date" onchange="loadSlots()" />
         </div>
         <div id="slot-section" style="display:none;">
-          <div class="slot-section-label">Select an hour slot</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="slot-section-label" id="slot-hint" style="margin:0;">Select hour slots</div>
+            <span id="slot-counter" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--hint);">0 selected</span>
+          </div>
           <div class="slot-grid" id="slot-grid"></div>
         </div>
         <div class="form-row">
@@ -290,6 +310,49 @@
           <input type="text" id="b-notes" placeholder="e.g. Skincare focus, need product brief" />
         </div>
         <button class="btn btn-primary btn-full" onclick="submitBooking()">Confirm booking</button>
+      </div>
+
+      <!-- CONFIRMATION SCREEN -->
+      <div class="confirm-screen" id="confirm-screen">
+        <div class="confirm-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="confirm-title">You're booked!</div>
+        <div class="confirm-sub">Your livestream slot has been reserved. Save these details for your records.</div>
+        <div class="confirm-card">
+          <div class="confirm-row">
+            <span class="confirm-row-label">Name</span>
+            <span class="confirm-row-val" id="cf-name"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-row-label">Shopee handle</span>
+            <span class="confirm-row-val" id="cf-handle"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-row-label">Type</span>
+            <span class="confirm-row-val" id="cf-type"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-row-label">Date</span>
+            <span class="confirm-row-val" id="cf-date"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-row-label">Time slots</span>
+            <span class="confirm-row-val confirm-hours" id="cf-hours"></span>
+          </div>
+          <div class="confirm-row" id="cf-notes-row">
+            <span class="confirm-row-label">Notes</span>
+            <span class="confirm-row-val" id="cf-notes" style="color:var(--muted);font-weight:400;"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-row-label">Booking ref</span>
+            <span class="confirm-row-val" id="cf-ref" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);font-weight:400;"></span>
+          </div>
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-primary" onclick="bookAnother()">Book another slot</button>
+          <button class="btn" onclick="viewMyBookings()">View my bookings</button>
+        </div>
       </div>
     </div>
 
@@ -418,6 +481,17 @@
                 <button class="btn btn-sm" onclick="changeAffLimit(1)">+</button>
               </div>
             </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Max hours per booking</div>
+                <div class="settings-desc">How many hour slots a streamer can pick in one booking</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button class="btn btn-sm" onclick="changeHourLimit(-1)">−</button>
+                <span style="font-size:15px;font-weight:500;font-family:'DM Mono',monospace;min-width:24px;text-align:center;" id="hour-limit-val">3</span>
+                <button class="btn btn-sm" onclick="changeHourLimit(1)">+</button>
+              </div>
+            </div>
             <div style="margin-top:16px;">
               <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
             </div>
@@ -507,13 +581,13 @@ const SK_SETTINGS = 'pst_shp_settings_v1';
 // ─── STATE ────────────────────────────────────
 let adminLoggedIn = false;
 let selectedType = null;
-let selectedHour = null;
+let selectedHours = [];
 let adminFilter = 'all';
 let deleteTarget = null;
 let editTarget = null;
 let cancelTarget = null;
 let calYear, calMonth;
-let settings = { maxPerStreamer: 3, cancelWindow: 48, maxAffiliates: 3 };
+let settings = { maxPerStreamer: 3, cancelWindow: 48, maxAffiliates: 3, maxHoursPerBooking: 3 };
 
 const today = new Date();
 calYear = today.getFullYear();
@@ -537,6 +611,11 @@ function goPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
+  // Reset confirm screen if navigating back to book
+  if (name === 'book') {
+    document.getElementById('confirm-screen').classList.remove('show');
+    document.getElementById('book-form-wrap').style.display = 'block';
+  }
   if (name === 'admin' && adminLoggedIn) refreshAdmin();
 }
 
@@ -558,10 +637,16 @@ function fmtDate(ds) {
 }
 function fmtDay(ds) { return new Date(ds + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' }); }
 function fmtHour(h) { return h.toString().padStart(2,'0') + ':00 – ' + ((h+1)%24).toString().padStart(2,'0') + ':00'; }
+function fmtHours(hours) {
+  if (!Array.isArray(hours)) return fmtHour(hours);
+  const sorted = [...hours].sort((a,b)=>a-b);
+  return sorted.map(h => h.toString().padStart(2,'0') + ':00').join(', ');
+}
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function todayStr() { return today.toISOString().split('T')[0]; }
 function canCancel(b) {
-  const slotDt = new Date(b.date + 'T' + b.hour.toString().padStart(2,'0') + ':00:00');
+  const h = Array.isArray(b.hours) ? Math.min(...b.hours) : b.hour;
+  const slotDt = new Date(b.date + 'T' + h.toString().padStart(2,'0') + ':00:00');
   const diffHrs = (slotDt - new Date()) / 3600000;
   return diffHrs >= settings.cancelWindow;
 }
@@ -569,7 +654,7 @@ function canCancel(b) {
 // ─── BOOKING FORM ─────────────────────────────
 function selectType(t) {
   selectedType = t;
-  selectedHour = null;
+  selectedHours = [];
   document.getElementById('tc-brand').classList.remove('sel-brand');
   document.getElementById('tc-affiliate').classList.remove('sel-affiliate');
   if (t === 'brand') document.getElementById('tc-brand').classList.add('sel-brand');
@@ -585,10 +670,12 @@ async function loadSlots() {
   const bookings = await getBookings();
   const grid = document.getElementById('slot-grid');
   document.getElementById('slot-section').style.display = 'block';
+  document.getElementById('slot-hint').textContent = 'Select up to ' + settings.maxHoursPerBooking + ' hour' + (settings.maxHoursPerBooking > 1 ? 's' : '') + ' — click to toggle';
   grid.innerHTML = '';
-  selectedHour = null;
+  selectedHours = [];
+  updateSlotCounter();
   for (let h = 0; h < 24; h++) {
-    const slotBks = bookings.filter(b => b.date === date && b.hour === h);
+    const slotBks = bookings.filter(b => b.date === date && (Array.isArray(b.hours) ? b.hours.includes(h) : b.hour === h));
     const hasBrand = slotBks.some(b => b.type === 'brand');
     const affCount = slotBks.filter(b => b.type === 'affiliate').length;
     let cls = '', capText = 'Free', taken = false;
@@ -599,16 +686,35 @@ async function loadSlots() {
     const el = document.createElement('div');
     el.className = 'slot ' + cls;
     el.innerHTML = '<div class="slot-time">' + h.toString().padStart(2,'0') + ':00</div><div class="slot-cap">' + capText + '</div>';
-    if (!taken) el.onclick = () => selectSlot(el, h);
+    if (!taken) el.onclick = () => toggleSlot(el, h);
     el.dataset.h = h;
     grid.appendChild(el);
   }
 }
 
-function selectSlot(el, h) {
-  document.querySelectorAll('.slot').forEach(s => s.classList.remove('slot-selected'));
-  el.classList.add('slot-selected');
-  selectedHour = h;
+function toggleSlot(el, h) {
+  const idx = selectedHours.indexOf(h);
+  if (idx > -1) {
+    selectedHours.splice(idx, 1);
+    el.classList.remove('slot-selected');
+  } else {
+    if (selectedHours.length >= settings.maxHoursPerBooking) {
+      const alertEl = document.getElementById('book-alert');
+      alertEl.innerHTML = '<div class="alert alert-warn">You can select up to ' + settings.maxHoursPerBooking + ' hour slot' + (settings.maxHoursPerBooking > 1 ? 's' : '') + ' per booking.</div>';
+      return;
+    }
+    selectedHours.push(h);
+    el.classList.add('slot-selected');
+  }
+  document.getElementById('book-alert').innerHTML = '';
+  updateSlotCounter();
+}
+
+function updateSlotCounter() {
+  const el = document.getElementById('slot-counter');
+  if (!el) return;
+  el.textContent = selectedHours.length + ' / ' + settings.maxHoursPerBooking + ' selected';
+  el.style.color = selectedHours.length === settings.maxHoursPerBooking ? 'var(--brand-text)' : 'var(--hint)';
 }
 
 async function submitBooking() {
@@ -620,41 +726,72 @@ async function submitBooking() {
   const alertEl = document.getElementById('book-alert');
   alertEl.innerHTML = '';
 
-  if (!name || !handle || !email || !date || !selectedType || selectedHour === null) {
-    alertEl.innerHTML = '<div class="alert alert-error">Please fill in all fields and select a time slot.</div>'; return;
+  if (!name || !handle || !email || !date || !selectedType || selectedHours.length === 0) {
+    alertEl.innerHTML = '<div class="alert alert-error">Please fill in all fields and select at least one time slot.</div>'; return;
   }
   settings = await getSettings();
   const bookings = await getBookings();
 
-  // Check streamer limit
+  // Check streamer booking limit
   const myBookings = bookings.filter(b => b.email.toLowerCase() === email.toLowerCase() && new Date(b.date + 'T12:00:00') >= today);
   if (myBookings.length >= settings.maxPerStreamer) {
-    alertEl.innerHTML = '<div class="alert alert-error">You have reached the maximum of ' + settings.maxPerStreamer + ' active bookings. Please cancel an existing slot first.</div>'; return;
-  }
-  // Check slot availability again
-  const slotBks = bookings.filter(b => b.date === date && b.hour === selectedHour);
-  const hasBrand = slotBks.some(b => b.type === 'brand');
-  const affCount = slotBks.filter(b => b.type === 'affiliate').length;
-  if (hasBrand || (selectedType === 'brand' && slotBks.length > 0)) {
-    alertEl.innerHTML = '<div class="alert alert-error">This slot is no longer available.</div>'; return;
-  }
-  if (selectedType === 'affiliate' && affCount >= settings.maxAffiliates) {
-    alertEl.innerHTML = '<div class="alert alert-error">This slot is full.</div>'; return;
+    alertEl.innerHTML = '<div class="alert alert-error">You have reached the maximum of ' + settings.maxPerStreamer + ' active bookings.</div>'; return;
   }
 
-  const entry = { id: Date.now() + '_' + Math.random().toString(36).slice(2), name, handle, email, type: selectedType, date, hour: selectedHour, notes, bookedAt: new Date().toISOString() };
+  // Validate each selected hour
+  for (const h of selectedHours) {
+    const slotBks = bookings.filter(b => b.date === date && (Array.isArray(b.hours) ? b.hours.includes(h) : b.hour === h));
+    const hasBrand = slotBks.some(b => b.type === 'brand');
+    const affCount = slotBks.filter(b => b.type === 'affiliate').length;
+    if (hasBrand || (selectedType === 'brand' && slotBks.length > 0)) {
+      alertEl.innerHTML = '<div class="alert alert-error">Slot ' + h.toString().padStart(2,'0') + ':00 is no longer available. Please reselect.</div>';
+      await loadSlots(); return;
+    }
+    if (selectedType === 'affiliate' && affCount >= settings.maxAffiliates) {
+      alertEl.innerHTML = '<div class="alert alert-error">Slot ' + h.toString().padStart(2,'0') + ':00 is full. Please reselect.</div>';
+      await loadSlots(); return;
+    }
+  }
+
+  const sortedHours = [...selectedHours].sort((a,b)=>a-b);
+  const entry = { id: Date.now() + '_' + Math.random().toString(36).slice(2), name, handle, email, type: selectedType, date, hours: sortedHours, hour: sortedHours[0], notes, bookedAt: new Date().toISOString() };
   bookings.push(entry);
   await setBookings(bookings);
 
-  alertEl.innerHTML = '<div class="alert alert-success">Booking confirmed! <strong>' + esc(name) + '</strong> — ' + fmtDate(date) + ' at ' + fmtHour(selectedHour) + '. A confirmation has been noted.</div>';
+  // Show confirmation screen
+  document.getElementById('cf-name').textContent = name;
+  document.getElementById('cf-handle').textContent = handle;
+  document.getElementById('cf-type').innerHTML = '<span class="badge badge-' + selectedType + '">' + selectedType + '</span>';
+  document.getElementById('cf-date').textContent = fmtDate(date) + ' (' + fmtDay(date) + ')';
+  document.getElementById('cf-hours').textContent = sortedHours.map(h => h.toString().padStart(2,'0') + ':00 – ' + ((h+1)%24).toString().padStart(2,'0') + ':00').join('\n');
+  document.getElementById('cf-notes').textContent = notes || '—';
+  document.getElementById('cf-ref').textContent = entry.id.split('_')[0];
+  document.getElementById('book-form-wrap').style.display = 'none';
+  document.getElementById('confirm-screen').classList.add('show');
+  window.scrollTo(0, 0);
+
+  // Reset form state for next booking
   document.getElementById('b-name').value = '';
   document.getElementById('b-handle').value = '';
   document.getElementById('b-email').value = '';
   document.getElementById('b-notes').value = '';
-  selectedType = null; selectedHour = null;
+  selectedType = null; selectedHours = [];
   document.getElementById('tc-brand').classList.remove('sel-brand');
   document.getElementById('tc-affiliate').classList.remove('sel-affiliate');
   document.getElementById('slot-section').style.display = 'none';
+  document.getElementById('book-alert').innerHTML = '';
+}
+
+function bookAnother() {
+  document.getElementById('confirm-screen').classList.remove('show');
+  document.getElementById('book-form-wrap').style.display = 'block';
+}
+
+function viewMyBookings() {
+  document.getElementById('confirm-screen').classList.remove('show');
+  document.getElementById('book-form-wrap').style.display = 'block';
+  const navBtn = document.querySelector('.nav-item:nth-child(3)');
+  goPage('mybookings', navBtn);
 }
 
 // ─── MY BOOKINGS ──────────────────────────────
@@ -669,7 +806,8 @@ async function loadMyBookings() {
   let rows = mine.map(b => {
     const isPast = new Date(b.date + 'T12:00:00') < today;
     const canC = !isPast && canCancel(b);
-    return '<tr><td>' + fmtDate(b.date) + '</td><td>' + fmtDay(b.date) + '</td><td style="font-family:\'DM Mono\',monospace;font-size:12px;">' + fmtHour(b.hour) + '</td><td><span class="badge badge-' + b.type + '">' + b.type + '</span></td><td style="color:var(--muted);">' + esc(b.notes||'—') + '</td><td>' + (isPast ? '<span style="color:var(--hint);font-size:12px;">Past</span>' : canC ? '<button class="btn btn-sm btn-danger" onclick="openCancelModal(\'' + b.id + '\',\'' + esc(b.name) + '\',\'' + b.date + '\',' + b.hour + ')">Cancel</button>' : '<span style="font-size:12px;color:var(--hint);">Within ' + settings.cancelWindow + 'h</span>') + '</td></tr>';
+    const hoursDisplay = Array.isArray(b.hours) ? b.hours.sort((a,c)=>a-c).map(h=>h.toString().padStart(2,'0')+':00').join(', ') : fmtHour(b.hour);
+    return '<tr><td>' + fmtDate(b.date) + '</td><td>' + fmtDay(b.date) + '</td><td style="font-family:\'DM Mono\',monospace;font-size:12px;">' + hoursDisplay + '</td><td><span class="badge badge-' + b.type + '">' + b.type + '</span></td><td style="color:var(--muted);">' + esc(b.notes||'—') + '</td><td>' + (isPast ? '<span style="color:var(--hint);font-size:12px;">Past</span>' : canC ? '<button class="btn btn-sm btn-danger" onclick="openCancelModal(\'' + b.id + '\',\'' + esc(b.name) + '\',\'' + b.date + '\',\'' + hoursDisplay + '\')">Cancel</button>' : '<span style="font-size:12px;color:var(--hint);">Within ' + settings.cancelWindow + 'h</span>') + '</td></tr>';
   }).join('');
   el.innerHTML = '<div class="card"><div class="card-title">Bookings for ' + esc(email) + '</div><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Time</th><th>Type</th><th>Notes</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
 }
@@ -712,18 +850,20 @@ async function renderOverview() {
   `;
   const tbody = document.getElementById('upcoming-tbody');
   if (upNext.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No streams in the next 7 days.</td></tr>'; return; }
-  tbody.innerHTML = upNext.map(b => `
-    <tr>
+  tbody.innerHTML = upNext.map(b => {
+    const hoursDisplay = Array.isArray(b.hours) ? b.hours.sort((a,c)=>a-c).map(h=>h.toString().padStart(2,'0')+':00').join(', ') : fmtHour(b.hour);
+    return `<tr>
       <td>${fmtDate(b.date)}</td><td>${fmtDay(b.date)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;">${fmtHour(b.hour)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;">${hoursDisplay}</td>
       <td>${esc(b.name)}</td><td style="color:var(--muted);">${esc(b.handle)}</td>
       <td><span class="badge badge-${b.type}">${b.type}</span></td>
       <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
       <td style="display:flex;gap:4px;">
         <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}',${b.hour})">Remove</button>
+        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ─── CALENDAR ─────────────────────────────────
@@ -764,17 +904,19 @@ function showCalDetail(ds, dayBks) {
   document.getElementById('cal-detail-title').textContent = fmtDate(ds) + ' — ' + dayBks.length + ' stream' + (dayBks.length!==1?'s':'') + ' scheduled';
   const tbody = document.getElementById('cal-detail-tbody');
   if (dayBks.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No bookings.</td></tr>'; detail.style.display='block'; return; }
-  tbody.innerHTML = dayBks.map(b=>`
-    <tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;">${fmtHour(b.hour)}</td>
+  tbody.innerHTML = dayBks.map(b=>{
+    const hoursDisplay = Array.isArray(b.hours) ? b.hours.sort((a,c)=>a-c).map(h=>h.toString().padStart(2,'0')+':00').join(', ') : fmtHour(b.hour);
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;">${hoursDisplay}</td>
       <td>${esc(b.name)}</td><td style="color:var(--muted);">${esc(b.handle)}</td>
       <td><span class="badge badge-${b.type}">${b.type}</span></td>
       <td style="color:var(--muted);font-size:12px;">${esc(b.notes||'—')}</td>
       <td style="display:flex;gap:4px;">
         <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}',${b.hour})">Remove</button>
+        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   detail.style.display = 'block';
 }
 
@@ -787,10 +929,11 @@ async function renderAllBookings() {
   filtered.sort((a,b)=>a.date===b.date?a.hour-b.hour:a.date.localeCompare(b.date));
   const tbody = document.getElementById('all-tbody');
   if (filtered.length===0) { tbody.innerHTML='<tr><td colspan="10" class="empty">No bookings found.</td></tr>'; document.getElementById('copy-box').textContent=''; return; }
-  tbody.innerHTML = filtered.map(b=>`
-    <tr>
+  tbody.innerHTML = filtered.map(b=>{
+    const hoursDisplay = Array.isArray(b.hours) ? b.hours.sort((a,c)=>a-c).map(h=>h.toString().padStart(2,'0')+':00').join(', ') : fmtHour(b.hour);
+    return `<tr>
       <td>${fmtDate(b.date)}</td><td>${fmtDay(b.date)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;">${fmtHour(b.hour)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;">${hoursDisplay}</td>
       <td>${esc(b.name)}</td><td style="color:var(--muted);">${esc(b.handle)}</td>
       <td style="color:var(--muted);font-size:12px;">${esc(b.email)}</td>
       <td><span class="badge badge-${b.type}">${b.type}</span></td>
@@ -798,12 +941,16 @@ async function renderAllBookings() {
       <td style="color:var(--hint);font-size:11px;">${b.bookedAt?new Date(b.bookedAt).toLocaleDateString('en-SG'):''}</td>
       <td style="display:flex;gap:4px;flex-shrink:0;">
         <button class="btn btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}',${b.hour})">Remove</button>
+        <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${b.id}','${esc(b.name)}','${b.date}','${hoursDisplay}')">Remove</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   // Copy box
   const header = 'Date\tDay\tTime\tName\tHandle\tEmail\tType\tNotes';
-  const rows = filtered.map(b=>[fmtDate(b.date),fmtDay(b.date),fmtHour(b.hour),b.name,b.handle,b.email,b.type,b.notes||''].join('\t')).join('\n');
+  const rows = filtered.map(b=>{
+    const hoursDisplay = Array.isArray(b.hours) ? b.hours.sort((a,c)=>a-c).map(h=>h.toString().padStart(2,'0')+':00').join(', ') : fmtHour(b.hour);
+    return [fmtDate(b.date),fmtDay(b.date),hoursDisplay,b.name,b.handle,b.email,b.type,b.notes||''].join('\t');
+  }).join('\n');
   document.getElementById('copy-box').textContent = header + '\n' + rows;
 }
 
@@ -853,9 +1000,9 @@ async function saveEdit() {
   console.log('NOTIFY: booking updated for', bookings[idx].email);
 }
 
-function openDeleteModal(id, name, date, hour) {
+function openDeleteModal(id, name, date, hoursDisplay) {
   deleteTarget = id;
-  document.getElementById('delete-desc').textContent = name + ' — ' + fmtDate(date) + ' at ' + fmtHour(hour);
+  document.getElementById('delete-desc').textContent = name + ' — ' + fmtDate(date) + ' at ' + hoursDisplay;
   document.getElementById('delete-modal').classList.add('open');
 }
 
@@ -869,9 +1016,9 @@ async function confirmDelete() {
   refreshAdmin(); renderAllBookings(); renderCal();
 }
 
-function openCancelModal(id, name, date, hour) {
+function openCancelModal(id, name, date, hoursDisplay) {
   cancelTarget = id;
-  document.getElementById('cancel-desc').textContent = 'Cancel your booking for ' + fmtDate(date) + ' at ' + fmtHour(hour) + '?';
+  document.getElementById('cancel-desc').textContent = 'Cancel booking for ' + fmtDate(date) + ' at ' + hoursDisplay + '?';
   document.getElementById('cancel-modal').classList.add('open');
 }
 
@@ -892,6 +1039,7 @@ async function loadSettingsUI() {
   settings = await getSettings();
   document.getElementById('limit-val').textContent = settings.maxPerStreamer;
   document.getElementById('aff-limit-val').textContent = settings.maxAffiliates;
+  document.getElementById('hour-limit-val').textContent = settings.maxHoursPerBooking;
   document.getElementById('cancel-window').value = settings.cancelWindow;
 }
 
@@ -905,12 +1053,18 @@ function changeAffLimit(d) {
   let v = Math.max(1, Math.min(10, parseInt(el.textContent)+d));
   el.textContent = v;
 }
+function changeHourLimit(d) {
+  const el = document.getElementById('hour-limit-val');
+  let v = Math.max(1, Math.min(12, parseInt(el.textContent)+d));
+  el.textContent = v;
+}
 
 async function saveSettings() {
   const s = {
     maxPerStreamer: parseInt(document.getElementById('limit-val').textContent),
     cancelWindow: parseInt(document.getElementById('cancel-window').value),
-    maxAffiliates: parseInt(document.getElementById('aff-limit-val').textContent)
+    maxAffiliates: parseInt(document.getElementById('aff-limit-val').textContent),
+    maxHoursPerBooking: parseInt(document.getElementById('hour-limit-val').textContent)
   };
   await setSettings(s);
   settings = s;
